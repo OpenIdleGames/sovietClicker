@@ -1,7 +1,48 @@
 <html>
   <head>
+    <title>Soviet Clicker</title>
   </head>
   <body>
-    test
+    <div id='div_cmd'></div>
+    <script>
+      var game = {
+        div_cmd: undefined,
+        state: undefined,
+        msgDelay: 3000,
+        waitForReply: false,
+        init: function() {
+          game.div_cmd = document.getElementById('div_cmd');
+          game.state = 'init';
+
+          game.update();
+        },
+        query: function(text, options, callback) {
+          var html = text;
+          options.forEach(function(v) {
+            html += '<button type="button">' + v + '</button>';
+          });
+          game.div_cmd.innerHTML = html;
+          game.waitForReply = true;
+        },
+        message: function(text) {
+          game.div_cmd.innerHTML = text;
+        },
+        update: function() {
+          switch (game.state) {
+            case 'init':
+              game.message('Hello.');
+              game.state = 'welcome';
+              break;
+            case 'welcome':
+              game.message('Welcome to Soviet Clicker!');
+              break;
+          }
+          if (!game.waitForReply) {
+            setTimeout(game.update, game.msgDelay);
+          }
+        },
+      };
+      game.init();
+    </script>
   </body>
 </html>
