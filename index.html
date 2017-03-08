@@ -1,22 +1,28 @@
 <html>
   <head>
     <title>Soviet Clicker</title>
+    <link href='favicon.ico' rel='icon' type='image/x-icon' />
   </head>
   <body>
     <div id='div_cmd'></div>
+    <div id='div_img'><img id='img_siberia' src='siberia.jpg'></div>
     <script>
       var game = {
         div_cmd: undefined,
         state: 'init',
         msgDelay: 5000,
         incrVal: 1,
-        expectedVal: 4,
-        upgradeTypes: ['incrVal', 'msgDelay'],
-        upgradeVals: [1, -1000],
+        expectedVal: 0,
+        upgradeNames: ['increment', 'delay', 'increment2'],
+        upgradeTypes: ['incrVal', 'msgDelay', 'incrVal'],
+        upgradeVals: [1, -3000, 8],
         upgradeCosts: [5, 10, 20],
         upgradeIndex: 0,
+        finalUpgrade: 2,
         waitForReply: false,
         init: function() {
+          document.getElementsByTagName('body').item(0).style.background = 'linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(hs.png) no-repeat center center fixed';
+          document.getElementsByTagName('body').item(0).style.backgroundSize = 'cover';
           game.div_cmd = document.getElementById('div_cmd');
           game.update();
         },
@@ -34,10 +40,12 @@
           game.div_cmd.innerHTML = html;
           game.div_cmd.style.transition = '';
           game.div_cmd.style.opacity = 1;
+          var tranTime = game.msgDelay * 0.25;
+          var nextTime = game.msgDelay * 0.75;
           setTimeout(function(){
-            game.div_cmd.style.transition = 'opacity 1s linear';
+            game.div_cmd.style.transition = 'opacity ' + tranTime + 'ms linear';
             game.div_cmd.style.opacity = 0;
-          }, 4000);
+          }, nextTime);
         },
         buyUpgrade: function(answer) {
           console.log('buy upgrade with answer ' + answer);
@@ -45,7 +53,19 @@
             game[game.upgradeTypes[game.upgradeIndex]] += game.upgradeVals[game.upgradeIndex];
             game.expectedVal -= game.upgradeCosts[game.upgradeIndex];
             game.upgradeIndex += 1;
-            game.state = 'decrement';
+            game.state = 'upgrade_unlock';
+          } else {
+            game.state = 'increment';
+          }
+          game.waitForReply = false;
+          game.div_cmd.style.transition = 'opacity 1s linear';
+          game.div_cmd.style.opacity = 0;
+          setTimeout(game.update, 1000);
+        },
+        buyUpgradeTest: function(answer) {
+          console.log('buy upgrade with answer ' + answer);
+          if (answer === 'Yes') {
+            game.state = 'game_over1';
           } else {
             game.state = 'increment';
           }
@@ -57,7 +77,7 @@
         update: function() {
           switch (game.state) {
             case 'init':
-              game.message('Hello.');
+              game.message('Hello comrade.');
               game.state = 'welcome';
               break;
             case 'welcome':
@@ -69,22 +89,68 @@
               game.state = 'begin';
               break;
             case 'begin':
-              game.message('Begin by thinking of the number zero.');
+              game.message('Begin by imaginging you have zero rubles.');
               game.state = 'increment';
               break;
             case 'increment':
-              game.message('Add ' + game.incrVal + ' to the number in your head.');
+              if (game.incrVal === 1) {
+                game.message('Add ' + game.incrVal + ' ruble to the number you\'re imagining.');
+              } else {
+                game.message('Add ' + game.incrVal + ' rubles to the number you\'re imagining.');
+              }
               game.expectedVal += game.incrVal;
-              if ((Math.random() > 0.5) && (game.expectedVal >= game.upgradeCosts[game.upgradeIndex])) {
-                game.state = 'upgrade';
+              if (game.upgradeIndex <= game.finalUpgrade) {
+                if ((Math.random() > 0.5) && (game.expectedVal >= game.upgradeCosts[game.upgradeIndex])) {
+                  game.state = 'upgrade';
+                }
+              } else {
+                if ((Math.random() > 0.75)) {
+                  if (game.expectedVal < 100) {
+                    game.state = 'test';
+                  } else {
+                    game.state = 'test_force';
+                  }
+                }
               }
               break;
+            case 'test':
+              game.query('Are you imagining at least 10,000 rubles?', ['Yes', 'No'], 'game.buyUpgradeTest');
+              break;
+            case 'test_force':
+              game.query('Are you imagining at least 10,000 rubles?', ['Yes', 'Yes'], 'game.buyUpgradeTest');
+              break;
+            case 'upgrade_unlock':
+              game.message('I\'ve unlocked the ' + game.upgradeNames[game.upgradeIndex - 1] + ' upgrade!');
+              game.state = 'decrement';
+              break;
             case 'decrement':
-              game.message('Subtract ' + game.upgradeCosts[game.upgradeIndex - 1] + ' from the number in your head.');
+              game.message('Subtract ' + game.upgradeCosts[game.upgradeIndex - 1] + ' from the number of rubles you\'re imagining.');
               game.state = 'increment';
               break;
             case 'upgrade':
-              game.query('Is your number at least ' + game.upgradeCosts[game.upgradeIndex] + '?', ['Yes', 'No'], 'game.buyUpgrade');
+              game.query('Are you imagining at least ' + game.upgradeCosts[game.upgradeIndex] + ' rubles?', ['Yes', 'No'], 'game.buyUpgrade');
+              break;
+            case 'game_over1':
+              game.msgDelay = 5000;
+              game.message('Imagining that many rubles isn\'t a good idea comrade!');
+              game.state = 'game_over2';
+              break;
+            case 'game_over2':
+              game.message('You must be a capitalist pig!');
+              game.state = 'game_over_final';
+              break;
+            case 'game_over_final':
+              game.message('I hope you enjoy your time in Siberia!');
+              game.waitForReply = true;
+              setTimeout(function() {
+                document.getElementsByTagName('body').item(0).style.background = 'url(siberia.jpg) no-repeat center center fixed';
+                document.getElementsByTagName('body').item(0).style.backgroundSize = 'cover';
+                //document.getElementById('div_img').style.display = 'block';
+                game.div_cmd.style.transition = 'opacity 5000ms linear';
+                game.div_cmd.style.opacity = 1;
+                game.div_cmd.innerHTML = 'You are here &#10140;';
+               // game.div_cmd.style.textShadow = 'rgb(3, 3, 3) 0px 0px 11px';
+              }, 5000);
               break;
           }
           if (!game.waitForReply) {
@@ -97,20 +163,34 @@
     <style>
       /* # for IDs, . for classes */
       body {
-      /*
-        background-color: #bb1111;
         color: yellow;
-      */
-        font-size: x-large;
+        font-size: xx-large;
       }
       #div_cmd {
+        z-index: 10;
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
+        text-shadow: rgb(3, 3, 3) 0px 0px 11px;
       }
       button {
         margin-left: 1em;
+        color: yellow;
+        background-color: #ad0404;
+        font-size: large;
+      }
+      #div_img {
+        display: none;
+        z-index: 0;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #img_siberia {
+        width: 100%
       }
     </style>
   </body>
