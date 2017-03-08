@@ -7,25 +7,52 @@
     <script>
       var game = {
         div_cmd: undefined,
-        state: undefined,
-        msgDelay: 3000,
+        state: 'init',
+        msgDelay: 5000,
+        incrVal: 1,
+        expectedVal: 4,
+        upgradeTypes: ['incrVal', 'msgDelay'],
+        upgradeVals: [1, -1000],
+        upgradeCosts: [5, 10, 20],
+        upgradeIndex: 0,
         waitForReply: false,
         init: function() {
           game.div_cmd = document.getElementById('div_cmd');
-          game.state = 'init';
-
           game.update();
         },
         query: function(text, options, callback) {
           var html = text;
           options.forEach(function(v) {
-            html += '<button type="button">' + v + '</button>';
+            html += '<button type="button" onclick="' + callback + '(\'' + v + '\')">' + v + '</button>';
           });
+          game.div_cmd.style.transition = '';
+          game.div_cmd.style.opacity = 1;
           game.div_cmd.innerHTML = html;
           game.waitForReply = true;
         },
-        message: function(text) {
-          game.div_cmd.innerHTML = text;
+        message: function(html) {
+          game.div_cmd.innerHTML = html;
+          game.div_cmd.style.transition = '';
+          game.div_cmd.style.opacity = 1;
+          setTimeout(function(){
+            game.div_cmd.style.transition = 'opacity 1s linear';
+            game.div_cmd.style.opacity = 0;
+          }, 4000);
+        },
+        buyUpgrade: function(answer) {
+          console.log('buy upgrade with answer ' + answer);
+          if (answer === 'Yes') {
+            game[game.upgradeTypes[game.upgradeIndex]] += game.upgradeVals[game.upgradeIndex];
+            game.expectedVal -= game.upgradeCosts[game.upgradeIndex];
+            game.upgradeIndex += 1;
+            game.state = 'decrement';
+          } else {
+            game.state = 'increment';
+          }
+          game.waitForReply = false;
+          game.div_cmd.style.transition = 'opacity 1s linear';
+          game.div_cmd.style.opacity = 0;
+          setTimeout(game.update, 1000);
         },
         update: function() {
           switch (game.state) {
@@ -35,6 +62,29 @@
               break;
             case 'welcome':
               game.message('Welcome to Soviet Clicker!');
+              game.state = 'instructions';
+              break;
+            case 'instructions':
+              game.message('In Soviet Clicker, game clicks you!');
+              game.state = 'begin';
+              break;
+            case 'begin':
+              game.message('Begin by thinking of the number zero.');
+              game.state = 'increment';
+              break;
+            case 'increment':
+              game.message('Add ' + game.incrVal + ' to the number in your head.');
+              game.expectedVal += game.incrVal;
+              if ((Math.random() > 0.5) && (game.expectedVal >= game.upgradeCosts[game.upgradeIndex])) {
+                game.state = 'upgrade';
+              }
+              break;
+            case 'decrement':
+              game.message('Subtract ' + game.upgradeCosts[game.upgradeIndex - 1] + ' from the number in your head.');
+              game.state = 'increment';
+              break;
+            case 'upgrade':
+              game.query('Is your number at least ' + game.upgradeCosts[game.upgradeIndex] + '?', ['Yes', 'No'], 'game.buyUpgrade');
               break;
           }
           if (!game.waitForReply) {
@@ -44,5 +94,24 @@
       };
       game.init();
     </script>
+    <style>
+      /* # for IDs, . for classes */
+      body {
+      /*
+        background-color: #bb1111;
+        color: yellow;
+      */
+        font-size: x-large;
+      }
+      #div_cmd {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      button {
+        margin-left: 1em;
+      }
+    </style>
   </body>
 </html>
